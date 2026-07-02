@@ -6,9 +6,10 @@ the task you're currently tracking, with time tracking and charts.
 ## Hotkeys (global, work from any app)
 
 - `Ctrl+Alt+F` — toggle the overlay's visibility
-- `Ctrl+Alt+T` — add a new task and make it active
-- `Ctrl+Alt+E` — rename the active task (starts a new task if none is active)
-- `Ctrl+Alt+C` — cycle to the next open task
+- `Ctrl+Alt+T` — add a new task and make it active ("Add task:" prompt)
+- `Ctrl+Alt+E` — rename the active task ("Rename task:" prompt; starts a new task if none is active)
+- `Ctrl+Alt+C` — cycle to the next open task (blind round-robin)
+- `Ctrl+Alt+L` — open a list of open tasks; arrow keys to navigate, Enter to switch, Escape to cancel
 - `Ctrl+Alt+D` — mark the active task done (auto-advances to the next open task)
 
 Editing accepts Enter to save, Escape to cancel.
@@ -35,9 +36,9 @@ your Startup folder to launch automatically at sign-in.
 There's no title bar or close button by design. Right-click the tray icon
 (look in the system tray, possibly under the "^" overflow arrow) and choose
 **Quit**. The tray menu also mirrors every hotkey, plus a **Statistics**
-item that opens a window with a pie chart of time spent per task and a
-timeline of when each task was worked on (filterable by Today / This Week /
-All Time).
+item that opens a window with a Pie Chart tab (time spent per task) and a
+Timeline tab (when each task was worked on), filterable by Today / This
+Week / All Time. The window sizes itself to the charts.
 
 ## Data
 
@@ -54,5 +55,5 @@ Ctrl+Alt+D does — so relaunching resumes tracking the same task.
 - Hotkeys are fixed, not user-configurable.
 - If a hotkey doesn't respond, another running app may have already claimed
   that combination — check the console output for a warning.
-- Task cycling is blind round-robin (no picker list) — with many open tasks
-  you may need several presses to reach the one you want.
+- The picker list (Ctrl+Alt+L) caps its visible rows at 10; with more open
+  tasks than that you'll need to scroll or use blind cycling instead.

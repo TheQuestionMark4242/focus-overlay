@@ -18,6 +18,7 @@ HOTKEY_ID_EDIT = 2  # rename active task
 HOTKEY_ID_ADD_TASK = 3
 HOTKEY_ID_CYCLE_TASK = 4
 HOTKEY_ID_MARK_DONE = 5
+HOTKEY_ID_LIST_TASKS = 6
 MOD_NOREPEAT = 0x4000
 
 
@@ -48,6 +49,7 @@ class HotkeyListener:
             (HOTKEY_ID_ADD_TASK, ord("T"), "Ctrl+Alt+T"),
             (HOTKEY_ID_CYCLE_TASK, ord("C"), "Ctrl+Alt+C"),
             (HOTKEY_ID_MARK_DONE, ord("D"), "Ctrl+Alt+D"),
+            (HOTKEY_ID_LIST_TASKS, ord("L"), "Ctrl+Alt+L"),
         ):
             for attempt in range(10):
                 try:
@@ -79,6 +81,8 @@ class HotkeyListener:
                         self.event_queue.put(("CYCLE_TASK", None))
                     elif wparam == HOTKEY_ID_MARK_DONE:
                         self.event_queue.put(("MARK_DONE", None))
+                    elif wparam == HOTKEY_ID_LIST_TASKS:
+                        self.event_queue.put(("LIST_TASKS", None))
                 win32gui.TranslateMessage(result[1])
                 win32gui.DispatchMessage(result[1])
         finally:

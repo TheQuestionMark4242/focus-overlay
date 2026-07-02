@@ -128,8 +128,10 @@ class OverlayApp:
         self.label = tk.Label(self.root, text=self.current_text, fg="white", bg="black", font=FONT)
         self.label.pack(expand=True, fill="both")
         self.entry = None
+        self.prompt_label = None
         self._pending_commit = None
         self.stats_window = None
+        self.task_picker = None
 
         self.root.update_idletasks()
         # winfo_id() returns Tk's inner TkChild window; window styles and
@@ -164,6 +166,8 @@ class OverlayApp:
                     self.mark_active_done()
                 elif kind == "OPEN_STATS":
                     self.open_stats_window()
+                elif kind == "LIST_TASKS":
+                    self.start_task_picker()
                 elif kind == "QUIT":
                     self.do_quit()
                     return
@@ -174,6 +178,9 @@ class OverlayApp:
         self.root.after(50, self.poll_queue)
 
     def toggle_visibility(self) -> None:
+        if self.task_picker is not None:
+            self._close_task_picker()
+            return
         if self.entry is not None:
             self._on_inline_cancel()
             return
@@ -211,12 +218,12 @@ class OverlayApp:
         return ids[0]
 
     def cycle_task(self) -> None:
-        if self.entry is not None:
+        if self.entry is not None or self.task_picker is not None:
             return
         self.activate_task(self._next_open_task_id(self.active_task_id))
 
     def mark_active_done(self) -> None:
-        if self.entry is not None or self.active_task_id is None:
+        if self.entry is not None or self.task_picker is not None or self.active_task_id is None:
             return
         completing_id = self.active_task_id
         tasks_db.close_open_time_entry(completing_id)
@@ -230,8 +237,8 @@ class OverlayApp:
 
     # -- inline edit (shared by add-task and rename-task) -------------
 
-    def _start_inline_edit(self, initial_text: str, on_commit_text) -> None:
-        if self.entry is not None:
+    def _start_inline_edit(self, initial_text: str, on_commit_text, prompt_text: str) -> None:
+        if self.entry is not None or self.task_picker is not None:
             return
         if self.root.state() == "withdrawn":
             self.root.deiconify()
@@ -240,9 +247,12 @@ class OverlayApp:
         set_click_through(self.hwnd, False)
         self.label.pack_forget()
 
+        self.prompt_label = tk.Label(self.root, text=prompt_text, fg="white", bg="black", font=FONT)
+        self.prompt_label.pack(side="left", padx=(12, 0))
+
         self.entry = tk.Entry(self.root, font=FONT)
         self.entry.insert(0, initial_text)
-        self.entry.pack(expand=True, fill="both")
+        self.entry.pack(side="left", expand=True, fill="both", padx=(6, 12))
         self.entry.select_range(0, "end")
 
         force_foreground(self.hwnd)
@@ -267,13 +277,15 @@ class OverlayApp:
     def _exit_inline_edit(self) -> None:
         self.entry.destroy()
         self.entry = None
+        self.prompt_label.destroy()
+        self.prompt_label = None
         self._pending_commit = None
         self.label.config(text=self.current_text)
         self.label.pack(expand=True, fill="both")
         set_click_through(self.hwnd, True)
 
     def start_add_task(self) -> None:
-        self._start_inline_edit("", self._commit_add_task)
+        self._start_inline_edit("", self._commit_add_task, "Add task:")
 
     def _commit_add_task(self, title: str) -> None:
         new_id = tasks_db.create_task(title)
@@ -284,12 +296,72 @@ class OverlayApp:
             self.start_add_task()
             return
         current_title = tasks_db.get_task(self.active_task_id)["title"]
-        self._start_inline_edit(current_title, self._commit_rename_task)
+        self._start_inline_edit(current_title, self._commit_rename_task, "Rename task:")
 
     def _commit_rename_task(self, title: str) -> None:
         tasks_db.rename_task(self.active_task_id, title)
         self.current_text = title
         self.label.config(text=title)
+
+    # -- task picker (list + arrow keys) --------------------------------
+
+    def start_task_picker(self) -> None:
+        if self.entry is not None or self.task_picker is not None:
+            return
+        open_tasks = tasks_db.list_open_tasks()
+        if not open_tasks:
+            return
+
+        picker = tk.Toplevel(self.root)
+        picker.overrideredirect(True)
+        picker.attributes("-topmost", True)
+        picker.configure(bg="black")
+
+        row_height = 26
+        visible_rows = min(len(open_tasks), 10)
+        width = 320
+        height = visible_rows * row_height + 8
+        bar_y = get_work_area_bottom() - OVERLAY_HEIGHT
+        picker.geometry(f"{width}x{height}+0+{bar_y - height}")
+
+        listbox = tk.Listbox(
+            picker, font=FONT, bg="black", fg="white",
+            selectbackground="#3a3a3a", activestyle="none",
+            highlightthickness=0, bd=0,
+        )
+        listbox.pack(expand=True, fill="both")
+        ids = [t["id"] for t in open_tasks]
+        for t in open_tasks:
+            listbox.insert("end", t["title"])
+        start_idx = ids.index(self.active_task_id) if self.active_task_id in ids else 0
+        listbox.selection_set(start_idx)
+        listbox.activate(start_idx)
+        listbox.see(start_idx)
+
+        picker.update_idletasks()
+        GA_ROOT = 2
+        picker_hwnd = ctypes.windll.user32.GetAncestor(picker.winfo_id(), GA_ROOT)
+        force_foreground(picker_hwnd)
+        picker.lift()
+        picker.focus_force()
+        listbox.focus_force()
+
+        def commit(_event=None):
+            selection = listbox.curselection()
+            if selection:
+                self.activate_task(ids[selection[0]])
+            self._close_task_picker()
+
+        listbox.bind("<Return>", commit)
+        listbox.bind("<Escape>", lambda _e: self._close_task_picker())
+        picker.protocol("WM_DELETE_WINDOW", self._close_task_picker)
+
+        self.task_picker = picker
+
+    def _close_task_picker(self) -> None:
+        if self.task_picker is not None:
+            self.task_picker.destroy()
+            self.task_picker = None
 
     # -- statistics window ---------------------------------------------
 

@@ -25,6 +25,7 @@ def build_tray_icon(event_queue: "queue.Queue") -> pystray.Icon:
         pystray.MenuItem("Add Task", lambda icon, item: event_queue.put(("ADD_TASK", None))),
         pystray.MenuItem("Rename Active Task", lambda icon, item: event_queue.put(("START_EDIT", None))),
         pystray.MenuItem("Cycle Task", lambda icon, item: event_queue.put(("CYCLE_TASK", None))),
+        pystray.MenuItem("List Tasks", lambda icon, item: event_queue.put(("LIST_TASKS", None))),
         pystray.MenuItem("Mark Done", lambda icon, item: event_queue.put(("MARK_DONE", None))),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Statistics", lambda icon, item: event_queue.put(("OPEN_STATS", None))),
