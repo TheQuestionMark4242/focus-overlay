@@ -14,7 +14,10 @@ import win32gui
 import pywintypes
 
 HOTKEY_ID_TOGGLE = 1
-HOTKEY_ID_EDIT = 2
+HOTKEY_ID_EDIT = 2  # rename active task
+HOTKEY_ID_ADD_TASK = 3
+HOTKEY_ID_CYCLE_TASK = 4
+HOTKEY_ID_MARK_DONE = 5
 MOD_NOREPEAT = 0x4000
 
 
@@ -42,6 +45,9 @@ class HotkeyListener:
         for hotkey_id, vk, name in (
             (HOTKEY_ID_TOGGLE, ord("F"), "Ctrl+Alt+F"),
             (HOTKEY_ID_EDIT, ord("E"), "Ctrl+Alt+E"),
+            (HOTKEY_ID_ADD_TASK, ord("T"), "Ctrl+Alt+T"),
+            (HOTKEY_ID_CYCLE_TASK, ord("C"), "Ctrl+Alt+C"),
+            (HOTKEY_ID_MARK_DONE, ord("D"), "Ctrl+Alt+D"),
         ):
             for attempt in range(10):
                 try:
@@ -67,6 +73,12 @@ class HotkeyListener:
                         self.event_queue.put(("TOGGLE_VISIBILITY", None))
                     elif wparam == HOTKEY_ID_EDIT:
                         self.event_queue.put(("START_EDIT", None))
+                    elif wparam == HOTKEY_ID_ADD_TASK:
+                        self.event_queue.put(("ADD_TASK", None))
+                    elif wparam == HOTKEY_ID_CYCLE_TASK:
+                        self.event_queue.put(("CYCLE_TASK", None))
+                    elif wparam == HOTKEY_ID_MARK_DONE:
+                        self.event_queue.put(("MARK_DONE", None))
                 win32gui.TranslateMessage(result[1])
                 win32gui.DispatchMessage(result[1])
         finally:

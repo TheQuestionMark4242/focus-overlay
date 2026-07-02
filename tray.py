@@ -21,7 +21,13 @@ def create_icon_image(size: int = 64) -> Image.Image:
 def build_tray_icon(event_queue: "queue.Queue") -> pystray.Icon:
     menu = pystray.Menu(
         pystray.MenuItem("Show/Hide", lambda icon, item: event_queue.put(("TOGGLE_VISIBILITY", None))),
-        pystray.MenuItem("Edit", lambda icon, item: event_queue.put(("START_EDIT", None))),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem("Add Task", lambda icon, item: event_queue.put(("ADD_TASK", None))),
+        pystray.MenuItem("Rename Active Task", lambda icon, item: event_queue.put(("START_EDIT", None))),
+        pystray.MenuItem("Cycle Task", lambda icon, item: event_queue.put(("CYCLE_TASK", None))),
+        pystray.MenuItem("Mark Done", lambda icon, item: event_queue.put(("MARK_DONE", None))),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem("Statistics", lambda icon, item: event_queue.put(("OPEN_STATS", None))),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Quit", lambda icon, item: event_queue.put(("QUIT", None))),
     )
